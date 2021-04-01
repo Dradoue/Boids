@@ -1,7 +1,7 @@
 # Boids simulation 
 
 
-![Simulation](Boids.png){ width=50% }
+![Simulation](Boids.png =250x)
 
 
 * Clone the repository
