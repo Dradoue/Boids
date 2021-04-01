@@ -135,9 +135,9 @@ def get_positions_velocity_headings(repository, filename, step):
                 (headings.shape[0], 2))
 
             return positions, velocities, headings
-
+    
     except IOError:
-        print("Could not open file named {0}, simulation terminated".format(filename))
+        print("Could not open file for step {0}, simulation terminated".format(str(step)))
         exit()
 
 
