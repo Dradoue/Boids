@@ -1,7 +1,7 @@
 # Boids simulation 
 
 
-![Simulation](Boids.png =250x)
+![Simulation](Boids.png)
 
 
 * Clone the repository
