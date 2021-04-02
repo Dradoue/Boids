@@ -4,12 +4,6 @@
 ![Simulation](Boids.png)
 
 
-* Clone the repository
-
-		git clone <repo>
-    
-    	cd <repo>
-
 * Setup: create a venv in your repository containing all your virtual environments, 
   
 	* with venv
