@@ -28,7 +28,7 @@
   
 	* with venv
 
-			source *yourEnvironmentPath*/env/bin/activate
+			source *yourEnvironmentsPath*/NameOfYourEnvironment/bin/activate
   
 	* or with conda 
   
