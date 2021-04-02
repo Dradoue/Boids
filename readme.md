@@ -37,4 +37,4 @@
 
 		pip3 install -r requirements.txt
  
-* You can now watch Boids 
+
