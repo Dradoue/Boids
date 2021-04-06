@@ -63,4 +63,4 @@
 		
 * labels calculated will be stored in /data/*repository* with the method specified, for the method see ML.py file and a short description in the main function in simulation_data_generator.py
 
-* More clustering method will be added with time
+* More clustering methods will be added with time
