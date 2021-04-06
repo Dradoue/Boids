@@ -145,7 +145,7 @@ class Boids(Physics2D):
                 with np.errstate(invalid='ignore'):
                     respect_angles = \
                         np.where(angle_between(self.velocities[ind, :], diff)
-                                 <= BOID_VIEW_ANGLE / 2)[0]
+                                 <= BOID_VIEW_ANGLE[n_specie] / 2)[0]
 
                 # respect_angles: indices of neighbors
                 # relatively to true_neighbors
@@ -159,7 +159,7 @@ class Boids(Physics2D):
                     norm_cohesion = np.linalg.norm(cohesion)
 
                     if norm_cohesion > EPSILON:
-                        self.steering[ind, :] += COHESION_FORCE * \
+                        self.steering[ind, :] += COHESION_FORCE[n_specie] * \
                                                  (cohesion / norm_cohesion)
 
     def apply_separation(self, indices, n_specie):
@@ -189,7 +189,7 @@ class Boids(Physics2D):
 
                 respect_angles = \
                     np.where(angle_between(self.velocities[ind, :], dist[neighbors])
-                             <= BOID_VIEW_ANGLE / 2)[0]
+                             <= BOID_VIEW_ANGLE[n_specie] / 2)[0]
 
                 #  neighbors that respect angles respectively to indices_
                 neighbors_that_respect_angle = neighbors[respect_angles]
@@ -197,7 +197,7 @@ class Boids(Physics2D):
                 if neighbors_that_respect_angle.shape[0] > 0:
                     sep = np.sum(dist[neighbors_that_respect_angle, :], axis=0)
 
-                    self.steering[ind, :] -= SEPARATION_FORCE * sep
+                    self.steering[ind, :] -= SEPARATION_FORCE[n_specie] * sep
 
     def apply_alignment(self, indices, n_specie):
         """
@@ -229,7 +229,7 @@ class Boids(Physics2D):
 
                 respect_angles = \
                     np.where(angle_between(self.velocities[ind, :], diff)
-                             <= BOID_VIEW_ANGLE / 2)[0]
+                             <= BOID_VIEW_ANGLE[n_specie] / 2)[0]
 
                 #  neighbors relatively to true_indices_neighbors
                 final_true_neighbors = true_indices_neighbors[respect_angles]
@@ -240,7 +240,7 @@ class Boids(Physics2D):
                     norm_vel = np.linalg.norm(mean_vel)
 
                     if norm_vel > EPSILON:
-                        self.steering[ind, :] += ALIGNMENT_FORCE * \
+                        self.steering[ind, :] += ALIGNMENT_FORCE[n_specie] * \
                                                  (mean_vel / norm_vel)
 
     def apply_chasing(self, indices_chase, indices_chased, n_specie):
@@ -277,7 +277,7 @@ class Boids(Physics2D):
                 with np.errstate(invalid='ignore'):
                     respect_angles = \
                         np.where(angle_between(self.velocities[ind, :], diff)
-                                 <= BOID_VIEW_ANGLE / 2)[0]
+                                 <= BOID_VIEW_ANGLE[n_specie] / 2)[0]
 
                 # respect_angles: indices of neighbors
                 # relatively to true_neighbors
@@ -291,7 +291,7 @@ class Boids(Physics2D):
                     norm_cohesion = np.linalg.norm(cohesion)
 
                     if norm_cohesion > EPSILON:
-                        self.steering[ind, :] += CHASING_FORCE * \
+                        self.steering[ind, :] += CHASING_FORCE[n_specie] * \
                                                  (cohesion / norm_cohesion)
 
     def apply_fleeing(self, indices_flee, indices_fleed, n_specie):
@@ -318,7 +318,7 @@ class Boids(Physics2D):
 
                 respect_angles = \
                     np.where(angle_between(self.velocities[ind, :], dist[neighbors])
-                             <= BOID_VIEW_ANGLE / 2)[0]
+                             <= BOID_VIEW_ANGLE[n_specie] / 2)[0]
 
                 #  neighbors that respect angles respectively to indices_
                 neighbors_that_respect_angle = neighbors[respect_angles]
@@ -328,4 +328,4 @@ class Boids(Physics2D):
 
                     norm_flee = np.linalg.norm(flee)
 
-                    self.steering[ind, :] -= FLEE_FORCE * flee / norm_flee
+                    self.steering[ind, :] -= FLEE_FORCE[n_specie] * flee / norm_flee

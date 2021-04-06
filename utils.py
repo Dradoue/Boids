@@ -2,8 +2,7 @@ import math
 
 import numpy as np
 import os
-
-from constants import WINDOW_SIZE, DEFAULT_TOLERANCE, EPSILON
+from constants import *
 
 
 def toroid_dist_between_points(a, b):
@@ -25,7 +24,7 @@ def is_empty(repository):
     return len(files) == 0
 
 
-def EraseFile(repository):
+def erase_files(repository):
     files = os.listdir(repository)
     for file in files:
         os.remove(repository + '/' + file)
@@ -123,19 +122,19 @@ def generate_list_aleatory_points(num_steering, min_x, min_y, max_x, max_y):
 
 def get_positions_velocity_headings(repository, filename, step):
     try:
-        with open(repository + filename + "positions_" + str(step)):
+        with open("data/" + repository + filename + "positions_" + str(step)):
 
-            headings = np.array(np.loadtxt(repository + filename
+            headings = np.array(np.loadtxt("data/" + repository + filename
                                            + "headings_" + str(step)), dtype=float)
             positions = np.array(
-                np.loadtxt(repository + filename + "positions_" + str(step)), dtype=float).reshape(
+                np.loadtxt("data/" + repository + filename + "positions_" + str(step)), dtype=float).reshape(
                 (headings.shape[0], 2))
             velocities = np.array(
-                np.loadtxt(repository + filename + "velocities_" + str(step)), dtype=float).reshape(
+                np.loadtxt("data/" + repository + filename + "velocities_" + str(step)), dtype=float).reshape(
                 (headings.shape[0], 2))
 
             return positions, velocities, headings
-    
+
     except IOError:
         print("Could not open file for step {0}, simulation terminated".format(str(step)))
         exit()
@@ -148,8 +147,8 @@ def charge_labels_simulation(repository, file_label_name, step):
     try:
         with open(repository + file_label_name + str(step)):
 
-            labels = np.array(np.loadtxt(repository + file_label_name
-                                        + str(step)), dtype=int)
+            labels = np.array(np.loadtxt("data/" + repository + file_label_name
+                                         + str(step)), dtype=int)
 
             return labels
 
@@ -167,8 +166,17 @@ def get_cluster_partitions(repository, file_label_name, step):
     res = list()
 
     for ind in np.sort(np.unique(labels)):
-
         indices = list(np.where(labels == ind)[0])
         res.append(indices)
 
     return res
+
+
+def write_constants_into_simulation_directory(directory):
+
+    f = open("constants.py", "r")
+    text = f.read()
+    f.close()
+    f = open("data/" + directory + "constants_used_for_this_simulation.txt", "w+")
+    f.write(text)
+    f.close()

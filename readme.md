@@ -1,7 +1,7 @@
 # Boids simulation 
 
 
-![Simulation](Boids.png)
+![Simulation](images/Boids.png)
 
 
 * Setup: create a venv in your repository containing all your virtual environments, 
