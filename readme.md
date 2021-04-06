@@ -61,4 +61,6 @@
 		# a new simulation and begin at step=0
 		main(mode=mode, repository=repository, list_num_boids=list_num_boids, step_to_begin=step_to_begin)
 		
-* labels calculated will be stored in /data/*repository* with the method specified
+* labels calculated will be stored in /data/*repository* with the method specified, for the method see ML.py file and a short description in the main function in simulation_data_generator.py
+
+* More clustering method will be added with time
