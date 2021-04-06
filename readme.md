@@ -50,7 +50,7 @@
 
 		main(mode=mode, repository=repository, list_num_boids=list_num_boids)
 		
-* Data simulation will be stored in /data/*repository*
+* Data simulation will be stored in /data/*repository* with a file named "constants_used_for_this_simulation.txt" that specify the constants used for the simulation 
 * You can, after, chose another mode to test some clustering algorithm, and specify the initial step where the clustering begin, for example:
 
 		# choose a mode
@@ -61,6 +61,8 @@
 		# a new simulation and begin at step=0
 		main(mode=mode, repository=repository, list_num_boids=list_num_boids, step_to_begin=step_to_begin)
 		
-* labels calculated will be stored in /data/*repository* with the method specified, for the method see ML.py file and a short description in the main function in simulation_data_generator.py
+* Labels calculated will be stored in /data/*repository* for each time step with the method specified
+
+* See ML.py file and a short description in the main function in simulation_data_generator.py for clustering methods
 
 * More clustering methods will be added with time
