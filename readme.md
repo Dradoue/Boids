@@ -54,7 +54,7 @@
 * You can, after, chose another mode to test some clustering algorithm, and specify the initial step where the clustering begin, for example:
 
 		# choose a mode
-		mode = 1  # choose mode from 0 to 8, see behind in *main* function
+		mode = 1  # choose mode from 0 to 8, see above in *main* function
 		repository = "simulation_data_new/"  # where the data will be stored in \data\*repository*
 		list_num_boids = [30, 30, 30, 30]  # number of boids for each species
 		step_to_begin = 300  # step where the rerun-simulation begin, useless for mode=0 where we begin
