@@ -98,9 +98,9 @@ def membership_to_colorlist(membership):
     return color_list
 
 
-def graph_step(step, repository="simulation_data/", filename="file"):
+def graph_step(step, repository="simulation_data/"):
     positions, velocities, headings = \
-        get_positions_velocity_headings(repository, filename, step)
+        get_positions_velocity_headings(repository, step)
 
     graph = build_graph(positions, velocities, headings)
 
@@ -158,7 +158,7 @@ def merging_labels(old_labels, new_labels):
     return new_labels
 
 
-def stock_file(labels, step, repository, filename):
+def stock_labels(labels, step, repository, filename):
     np.savetxt("data/" + repository + filename + str(step), labels)
 
 
@@ -198,12 +198,12 @@ def linear_comb_dist12_multiplestep(a1, a2, nb_step=3, gamma=0.5):
     return res
 
 
-def DBscan_step_positions(step, old_labels, repository, filename):
+def DBscan_step_positions(step, old_labels, repository):
     """
     DBscan algorithm on positions
     """
     positions, velocities, headings = \
-        get_positions_velocity_headings(repository, filename, step)
+        get_positions_velocity_headings(repository, step)
     # train_data = np.concatenate((positions, velocities), axis=1)
     train_data = positions
     db = DBSCAN(eps=85, min_samples=2).fit(train_data)
@@ -217,12 +217,12 @@ def DBscan_step_positions(step, old_labels, repository, filename):
 
 
 def DBscan_step_positions_and_velocity(step, old_labels, repository,
-                                       filename, beta=27):
+                                       beta=27):
     """
     DBcsan algorithm on positions + beta * velocities
     """
     positions, velocities, headings = \
-        get_positions_velocity_headings(repository, filename, step)
+        get_positions_velocity_headings(repository,  step)
 
     train_data = np.concatenate((positions, beta * velocities), axis=1)
 
@@ -236,45 +236,8 @@ def DBscan_step_positions_and_velocity(step, old_labels, repository,
     return labels
 
 
-def ST_DBSCAN_step(step, old_labels, repository, filename):
-    """
-    perform st-DBSCAN on data
-    """
-    positions, velocities, headings = \
-        get_positions_velocity_headings(repository, filename, step)
-
-    train_data = positions
-    st_db = ST_DBSCAN(eps1=85, eps2=85, min_samples=2).fit(train_data)
-    labels = st_db.labels_ + 1  # for getting rid of -1 labels
-    if old_labels is not None:
-        labels = merging_labels(old_labels, labels)
-    stock_file(labels, step, repository=repository,
-               filename="ST-DBSCAN_position_label")
-
-    return labels
-
-
-def DBscan_step_intuition_dist(step, old_labels, repository,
-                               filename, min_sample=2, eps=85):
-    global phi, alpha
-    positions, velocities, headings = \
-        get_positions_velocity_headings(repository, filename, step)
-
-    train_data = np.concatenate((positions, velocities), axis=1)
-
-    db = DBSCAN(eps=eps, min_samples=min_sample, metric=linear_comb_dist12).fit(train_data)
-
-    labels = db.labels_ + 1  # for getting rid of -1 labels
-    if old_labels is not None:
-        labels = merging_labels(old_labels, labels)
-    stock_file(labels, step, repository=repository,
-               filename="DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label")
-
-    return labels
-
-
-def DBscan_step_intuition_dist_multistep(step, old_labels, repository,
-                                         filename, min_sample=2, eps=85, nb_step=3):
+def DBscan_step_intuition_dist_multistep(step, old_labels, repository, min_sample=2,
+                                         eps=85, nb_step=3):
     """
     DBcsan algorithm on positions + beta * velocities
     """
@@ -285,17 +248,22 @@ def DBscan_step_intuition_dist_multistep(step, old_labels, repository,
     for i in range(step, step + nb_step, 1):
 
         positions, velocities, headings = \
-            get_positions_velocity_headings(repository, filename, step)
+            get_positions_velocity_headings(repository, step)
 
         if train_data is not None:
+
             train_data = np.concatenate((train_data, np.concatenate((positions, velocities), axis=1)),
                                         axis=0)
         else:
+
             train_data = np.concatenate((positions, velocities), axis=1)
+
     db = DBSCAN(eps=eps, min_samples=min_sample, metric=linear_comb_dist12_multiplestep).fit(train_data)
 
     labels = db.labels_ + 1  # for getting rid of -1 labels
+
     if old_labels is not None:
+
         labels = merging_labels(old_labels, labels)
     stock_file(labels, step, repository=repository,
                filename="DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label")
@@ -304,13 +272,13 @@ def DBscan_step_intuition_dist_multistep(step, old_labels, repository,
 
 
 def DBscan_step_intuition_dist(step, old_labels, repository,
-                               filename, min_sample=2, eps=85):
+                               min_sample=2, eps=85):
     """
     DBcsan algorithm on positions + beta * velocities
     """
     global phi, alpha
     positions, velocities, headings = \
-        get_positions_velocity_headings(repository, filename, step)
+        get_positions_velocity_headings(repository, step)
 
     train_data = np.concatenate((positions, velocities), axis=1)
 
@@ -325,13 +293,12 @@ def DBscan_step_intuition_dist(step, old_labels, repository,
     return labels
 
 
-def build_ground_truth(step, old_labels, repository,
-                       filename, list_nb_boids, beta=23):
+def build_ground_truth(step, old_labels, repository, list_nb_boids, beta=23):
     """
     build ground truth with DBscan on positions
     """
     positions, velocities, headings = \
-        get_positions_velocity_headings(repository, filename, step)
+        get_positions_velocity_headings(repository,  step)
 
     labels = np.zeros(positions.shape[0], dtype=int)
 
@@ -381,6 +348,7 @@ def calculate_rand_score(steps, repository, filename_true, filename_pred):
     # for all files
     list_scores = list()
     for step in steps:
+
         labels_true = charge_labels_simulation(repository, filename_true, step)
         labels_pred = charge_labels_simulation(repository, filename_pred, step)
 
@@ -392,6 +360,11 @@ def calculate_rand_score(steps, repository, filename_true, filename_pred):
     filename = "scores/" + "_ARIscore_" + filename_pred + filename_true
     print("mean ARI score:", np.mean(scores))
     np.savetxt(filename, scores)
+    return np.mean(scores)
 
+
+if __name__ == "__main__":
+
+    pass
 
 
