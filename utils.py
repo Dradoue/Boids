@@ -120,23 +120,24 @@ def generate_list_aleatory_points(num_steering, min_x, min_y, max_x, max_y):
     return [(np.random.uniform(min_x, max_x), np.random.uniform(min_y, max_y)) for _ in range(num_steering)]
 
 
-def get_positions_velocity_headings(repository, filename, step):
+def get_positions_velocity_headings(repository,  step):
     try:
-        with open("data/" + repository + filename + "positions_" + str(step)):
+        with open("data/" + repository + "positions_" + str(step)):
 
-            headings = np.array(np.loadtxt("data/" + repository + filename
+            headings = np.array(np.loadtxt("data/" + repository
                                            + "headings_" + str(step)), dtype=float)
             positions = np.array(
-                np.loadtxt("data/" + repository + filename + "positions_" + str(step)), dtype=float).reshape(
+                np.loadtxt("data/" + repository + "positions_" + str(step)), dtype=float).reshape(
                 (headings.shape[0], 2))
             velocities = np.array(
-                np.loadtxt("data/" + repository + filename + "velocities_" + str(step)), dtype=float).reshape(
+                np.loadtxt("data/" + repository + "velocities_" + str(step)), dtype=float).reshape(
                 (headings.shape[0], 2))
 
             return positions, velocities, headings
 
     except IOError:
-        print("Could not open file for step {0}, simulation terminated".format(str(step)))
+        print("Could not open file {0}, simulation terminated".format("data/" + repository +
+                                                                      "positions_" + str(step)))
         exit()
 
 
@@ -145,7 +146,7 @@ def charge_labels_simulation(repository, file_label_name, step):
     used to charge label files
     """
     try:
-        with open(repository + file_label_name + str(step)):
+        with open("data/" + repository + file_label_name + str(step)):
 
             labels = np.array(np.loadtxt("data/" + repository + file_label_name
                                          + str(step)), dtype=int)
@@ -153,7 +154,7 @@ def charge_labels_simulation(repository, file_label_name, step):
             return labels
 
     except IOError:
-        print("Could not open file named {0}".format(file_label_name))
+        print("Could not open file {0}".format("data/" + repository + file_label_name + str(step)))
         exit()
 
 
@@ -172,8 +173,29 @@ def get_cluster_partitions(repository, file_label_name, step):
     return res
 
 
-def write_constants_into_simulation_directory(directory):
+def get_dataset_steps_positions_velocities_headings(step_init, step_end, n_boids, directory):
 
+    steps = np.arange(step_init, step_end+1)
+
+    data = list()
+
+    for step in steps:
+
+        positions, velocities, headings = get_positions_velocity_headings(directory, step)
+
+        temp = np.concatenate((np.array([step]*n_boids, dtype=float).reshape(n_boids, 1), positions, velocities,
+                               headings.reshape(headings.shape[0], 1)), axis=1)
+        data.append(temp)
+
+    data = np.array(data, dtype=float).reshape(steps.shape[0]*n_boids, 6)
+
+    print(data.shape)
+    print(data)
+
+    return data
+
+
+def write_constants_into_simulation_directory(directory):
     f = open("constants.py", "r")
     text = f.read()
     f.close()
