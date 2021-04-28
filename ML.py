@@ -1,10 +1,11 @@
 import collections
+
 import karateclub
 import networkx as nx
 import numpy as np
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import adjusted_rand_score
-from st_dbscan import ST_DBSCAN
+
 from constants import TRIANGLES_COLORS
 from utils import toroid_dist_between_points, \
     get_positions_velocity_headings, charge_labels_simulation
@@ -210,8 +211,8 @@ def DBscan_step_positions(step, old_labels, repository):
     labels = db.labels_ + 1  # for getting rid of -1 labels
     if old_labels is not None:
         labels = merging_labels(old_labels, labels)
-    stock_file(labels, step, repository=repository,
-               filename="DBSCAN_positions_label")
+    stock_labels(labels, step, repository=repository,
+                 filename="DBSCAN_positions_label")
 
     return labels
 
@@ -222,7 +223,7 @@ def DBscan_step_positions_and_velocity(step, old_labels, repository,
     DBcsan algorithm on positions + beta * velocities
     """
     positions, velocities, headings = \
-        get_positions_velocity_headings(repository,  step)
+        get_positions_velocity_headings(repository, step)
 
     train_data = np.concatenate((positions, beta * velocities), axis=1)
 
@@ -230,8 +231,8 @@ def DBscan_step_positions_and_velocity(step, old_labels, repository,
     labels = db.labels_ + 1  # for getting rid of -1 labels
     if old_labels is not None:
         labels = merging_labels(old_labels, labels)
-    stock_file(labels, step, repository=repository,
-               filename="DBSCAN_position|velocity_label")
+    stock_labels(labels, step, repository=repository,
+                 filename="DBSCAN_position|velocity_label")
 
     return labels
 
@@ -263,10 +264,9 @@ def DBscan_step_intuition_dist_multistep(step, old_labels, repository, min_sampl
     labels = db.labels_ + 1  # for getting rid of -1 labels
 
     if old_labels is not None:
-
         labels = merging_labels(old_labels, labels)
-    stock_file(labels, step, repository=repository,
-               filename="DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label")
+    stock_labels(labels, step, repository=repository,
+                 filename="DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label")
 
     return labels
 
@@ -287,8 +287,8 @@ def DBscan_step_intuition_dist(step, old_labels, repository,
     labels = db.labels_ + 1  # for getting rid of -1 labels
     if old_labels is not None:
         labels = merging_labels(old_labels, labels)
-    stock_file(labels, step, repository=repository,
-               filename="DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label")
+    stock_labels(labels, step, repository=repository,
+                 filename="DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label")
 
     return labels
 
@@ -298,7 +298,7 @@ def build_ground_truth(step, old_labels, repository, list_nb_boids, beta=23):
     build ground truth with DBscan on positions
     """
     positions, velocities, headings = \
-        get_positions_velocity_headings(repository,  step)
+        get_positions_velocity_headings(repository, step)
 
     labels = np.zeros(positions.shape[0], dtype=int)
 
@@ -330,8 +330,8 @@ def build_ground_truth(step, old_labels, repository, list_nb_boids, beta=23):
             labels[indices] = merging_labels(old_labels[indices],
                                              labels[indices])
 
-    stock_file(labels, step, repository=repository,
-               filename="ground_truth_label")
+    stock_labels(labels, step, repository=repository,
+                 filename="ground_truth_label")
 
     return labels
 
@@ -348,7 +348,6 @@ def calculate_rand_score(steps, repository, filename_true, filename_pred):
     # for all files
     list_scores = list()
     for step in steps:
-
         labels_true = charge_labels_simulation(repository, filename_true, step)
         labels_pred = charge_labels_simulation(repository, filename_pred, step)
 
@@ -364,7 +363,4 @@ def calculate_rand_score(steps, repository, filename_true, filename_pred):
 
 
 if __name__ == "__main__":
-
     pass
-
-

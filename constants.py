@@ -19,12 +19,12 @@ NB_SPECIES = 4
 # species 1 chase species 2 => RELATIONS_SPECIES[0,1]=1
 # species 2 flee species 1 => RELATIONS_SPECIES[1,0]=-1
 # neutral relation (ignore everything) => 0
-RELATIONS_SPECIES = np.array([[0, 1, 0, 0],
-                              [-1, 0, 0, 0],
+RELATIONS_SPECIES = np.array([[0, 0, 0, 0],
+                              [0, 0, 0, 0],
                               [0, 0, 0, 0],
                               [0, 0, 0, 0]])
 
-SEPARATION_DIST = [35, 55, 75, 95]  # separation distances
+SEPARATION_DIST = [35, 35, 35, 35]  # separation distances
 BOID_VIEW = [200, 200, 200, 200]  # euclidean distance where boids can see other boids, for alignment and cohesion
 BOID_VIEW_ANGLE = [260, 260, 260, 260]  # view angle of boids
 FLEE_FORCE = [40, 40, 40, 40]

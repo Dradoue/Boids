@@ -2,6 +2,7 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from sklearn.cluster import DBSCAN
 from sklearn.utils import check_array
+
 from ML import calculate_rand_score, stock_labels
 from utils import get_dataset_steps_positions_velocities_headings
 
@@ -26,7 +27,6 @@ class ST_DBSCAN:
         ref
         - ST-DBSCAN: An algorithm for clustering spatial–temporal data
         Derya Birant, Alp Kut
-
         ----------
         :param eps1: float, the density threshold for spatial neighborhood
         :param eps2: float, The temporal threshold for temporal neighborhood
@@ -83,7 +83,7 @@ class ST_DBSCAN:
         spatial_square_dist_matrix = pdist(X[:, self.indices_2], metric=self.metric_2)
 
         # filter the euc_dist matrix using the time_dist
-        dist = np.where(non_spatial_square_dist_matrix <= self.eps1, spatial_square_dist_matrix, 2 * self.eps2)
+        dist = np.where(non_spatial_square_dist_matrix <= self.eps1, spatial_square_dist_matrix, 10 * self.eps2)
 
         db = DBSCAN(eps=self.eps2,
                     min_samples=self.min_samples,
@@ -114,7 +114,7 @@ class ST_DBSCAN:
 
     def generate_results(self, directory, step_init, step_end):
 
-        steps = list(np.arange(step_init, step_end + 1))  # steps to take into account in the calculation
+        steps = list(np.arange(step_init, step_end))  # steps to take into account in the calculation
         filename_true = "ground_truth_label"  # file name for ground-truth (see for example file_name
         # argument in stock_file function in build_ground_truth function in module ML.py)
         filename_pred = "ST_DBSCAN_eps1=" + str(self.eps1) + "eps2=" + \
@@ -139,7 +139,8 @@ if __name__ == "__main__":
     n_time_step = 3
     directory = "simulation_data/"
     step_init = 300
-    step_end = 1000
+    step_end = 500
+    split = False  # True if we split the data in sequences of n_time_step, False else
 
     # build the dataset
     data = get_dataset_steps_positions_velocities_headings(step_init, step_end, n_indiv, directory)
@@ -149,9 +150,9 @@ if __name__ == "__main__":
 
     # parameters
     eps1 = [3]
-    eps2 = [1, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 85, 90]
-    min_samples = [2, 3, 5, 7, 10, 20]
-	n_test = 40
+    eps2 = [85]
+    min_samples = [5]
+
     # eps1 = 2 -> eps2=80, min_sample=5 best found
     # eps1 = 1 -> eps2=80, min_sample=5 best found
     # eps1 = 3 -> eps2=80, min_sample=5 best found
@@ -160,35 +161,54 @@ if __name__ == "__main__":
     param_list = list()
 
     # test each parameters
-    for eps_1 in eps1:
-        for eps_2 in eps2:
-            for min_sample in min_samples:
+    if split:
+        for eps_1 in eps1:
+            for eps_2 in eps2:
+                for min_sample in min_samples:
 
-                # we test on n_test sets of n_time_frame samples
-                mean_res = list()
+                    # we test on 10 sets of n_time_frame samples
+                    mean_res = list()
 
-                for i in range(n_test):
-                    st_dbscan = ST_DBSCAN(eps_1, eps_2, min_sample, [0], [1, 2])
-                    st_dbscan.fit(list_data[i])
+                    for i in range(40):
+                        st_dbscan = ST_DBSCAN(eps_1, eps_2, min_sample, [0], [1, 2])
+                        st_dbscan.fit(list_data[i])
 
-                    st_dbscan.stock_labels_to_directory(directory=directory,
-                                                        nb_obs=n_indiv,
-                                                        step_init=step_init + i * n_time_step,
-                                                        step_end=step_init + (i + 1) * n_time_step)
+                        st_dbscan.stock_labels_to_directory(directory=directory,
+                                                            nb_obs=n_indiv,
+                                                            step_init=step_init + i * n_time_step,
+                                                            step_end=step_init + (i + 1) * n_time_step)
 
-                    # generate results will calculate
+                        ari_score = st_dbscan.generate_results(directory=directory,
+                                                               step_init=step_init + i * n_time_step,
+                                                               step_end=step_init + (i + 1) * n_time_step)
+                        mean_res.append(ari_score)
+
                     print("eps1: ", eps_1)
                     print("eps2: ", eps_2)
                     print("min_sample", min_sample)
+                    results.append(np.mean(mean_res))
+                    param_list.append([eps_1, eps_2, min_sample])
+    else:
+        for eps_1 in eps1:
+            for eps_2 in eps2:
+                for min_sample in min_samples:
+                    st_dbscan = ST_DBSCAN(eps_1, eps_2, min_sample, [0], [1, 2])
+                    st_dbscan.fit(data)
 
+                    st_dbscan.stock_labels_to_directory(directory=directory,
+                                                        nb_obs=n_indiv,
+                                                        step_init=step_init,
+                                                        step_end=step_end)
+                    print("eps1: ", eps_1)
+                    print("eps2: ", eps_2)
+                    print("min_sample", min_sample)
                     ari_score = st_dbscan.generate_results(directory=directory,
-                                                           step_init=step_init + i * n_time_step,
-                                                           step_end=step_init + (i + 1) * n_time_step - 1)
-                    mean_res.append(ari_score)
+                                                           step_init=step_init,
+                                                           step_end=step_end)
+                    results.append(ari_score)
+                    param_list.append([eps_1, eps_2, min_sample])
 
-                results.append(np.mean(mean_res))
-                param_list.append([eps_1, eps_2, min_sample])
-
-    print("ind best parameter", np.argmax(results))
-    print("best score", results[np.argmax(results)])
-    print("best parameters: eps1, eps2, min_sample = ", param_list[np.argmax(results)])
+    print("best score from all {0} trial(s): {1}".format(len(results),
+                                                         results[np.argmax(results)]))
+    print("best parameters from all {0} "
+          "trials: eps1, eps2, min_sample = {1}".format(len(results), param_list[np.argmax(results)]))
