@@ -12,5 +12,11 @@ if __name__ == "__main__":
 
     filename_pred_DBSCAN_using_positions_velocities = "DBSCAN_position|velocity_label"  # other filename for getting labels
 
+    filename_pred_DBSCAN_using_positions = "DBSCAN_positions_label"
+
+    filename_pred_DBSCAN_intuition_dist = "DBSCAN_intuition_dist_phi=100_alpha=1.2_label"
+
     # calculate mean rand score around steps and pred - true labels and show it
     calculate_rand_score(steps, repository, filename_true, filename_pred_DBSCAN_using_positions_velocities)
+    calculate_rand_score(steps, repository, filename_true, filename_pred_DBSCAN_using_positions)
+    calculate_rand_score(steps, repository, filename_true, filename_pred_DBSCAN_intuition_dist)
