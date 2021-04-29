@@ -201,7 +201,7 @@ def linear_comb_dist12_multiplestep(a1, a2, nb_step=3, gamma=0.5):
 
 def DBscan_step_positions(step, old_labels, repository):
     """
-    DBscan algorithm on positions
+    DBSCAN algorithm on positions
     """
     positions, velocities, headings = \
         get_positions_velocity_headings(repository, step)
@@ -220,7 +220,7 @@ def DBscan_step_positions(step, old_labels, repository):
 def DBscan_step_positions_and_velocity(step, old_labels, repository,
                                        beta=27):
     """
-    DBcsan algorithm on positions + beta * velocities
+    DBSCAN algorithm on positions + beta * velocities
     """
     positions, velocities, headings = \
         get_positions_velocity_headings(repository, step)
@@ -240,7 +240,7 @@ def DBscan_step_positions_and_velocity(step, old_labels, repository,
 def DBscan_step_intuition_dist_multistep(step, old_labels, repository, min_sample=2,
                                          eps=85, nb_step=3):
     """
-    DBcsan algorithm on positions + beta * velocities
+    DBSCAN algorithm on positions + beta * velocities
     """
     global phi, alpha
 
@@ -336,6 +336,13 @@ def build_ground_truth(step, old_labels, repository, list_nb_boids, beta=23):
     return labels
 
 
+def run_clustering_algorithm(steps, directory, function):
+    old_labels = function(steps[0], None, directory)
+
+    for step in steps[1:]:
+        old_labels = function(step, old_labels, directory)
+
+
 def calculate_rand_score(steps, repository, filename_true, filename_pred):
     """
     Compute Rand index at each step specified
@@ -363,4 +370,12 @@ def calculate_rand_score(steps, repository, filename_true, filename_pred):
 
 
 if __name__ == "__main__":
-    pass
+    steps = list(np.arange(300, 1000))
+    directory = "simulation_data/"
+    # function = DBscan_step_intuition_dist
+
+    # function = DBscan_step_intuition_dist_multistep
+    # function = DBscan_step_positions_and_velocity
+    function = DBscan_step_positions
+
+    run_clustering_algorithm(steps, directory, function)
