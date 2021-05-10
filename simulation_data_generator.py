@@ -26,7 +26,6 @@ def main(mode, repository, list_num_boids, positions_init=None, velocities_init=
                                   resizable=False)
     # set background color
     GL.glClearColor(1, 1, 1, 1)
-
     # initiate some parameters
     app = None
     func_animate = None

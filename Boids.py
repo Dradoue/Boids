@@ -198,6 +198,7 @@ class Boids(Physics2D):
                     sep = np.sum(dist[neighbors_that_respect_angle, :], axis=0)
 
                     self.steering[ind, :] -= SEPARATION_FORCE[n_specie] * sep
+                    # sep/dist_norm?
 
     def apply_alignment(self, indices, n_specie):
         """

@@ -3,6 +3,7 @@ import collections
 import karateclub
 import networkx as nx
 import numpy as np
+import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import adjusted_rand_score
 
@@ -12,7 +13,7 @@ from utils import toroid_dist_between_points, \
 
 global phi
 global alpha
-phi = 100
+phi = 300
 alpha = 1.2
 
 
@@ -160,6 +161,7 @@ def merging_labels(old_labels, new_labels):
 
 
 def stock_labels(labels, step, repository, filename):
+    # print("data/" + repository + filename + str(step) + "saved")
     np.savetxt("data/" + repository + filename + str(step), labels)
 
 
@@ -199,7 +201,7 @@ def linear_comb_dist12_multiplestep(a1, a2, nb_step=3, gamma=0.5):
     return res
 
 
-def DBscan_step_positions(step, old_labels, repository):
+def DBscan_step_positions(step, old_labels, repository, eps=85, min_sample=2):
     """
     DBSCAN algorithm on positions
     """
@@ -207,34 +209,107 @@ def DBscan_step_positions(step, old_labels, repository):
         get_positions_velocity_headings(repository, step)
     # train_data = np.concatenate((positions, velocities), axis=1)
     train_data = positions
-    db = DBSCAN(eps=85, min_samples=2).fit(train_data)
+    db = DBSCAN(eps=eps, min_samples=min_sample).fit(train_data)
     labels = db.labels_ + 1  # for getting rid of -1 labels
     if old_labels is not None:
         labels = merging_labels(old_labels, labels)
     stock_labels(labels, step, repository=repository,
-                 filename="DBSCAN_positions_label")
+                 filename="DBSCAN_positions_eps=" + str(eps) + "min_sample=" + str(min_sample) + "_label")
 
     return labels
 
 
+def test_DBSCAN_positions(steps, directory, list_eps, list_min_sample):
+    name_pandas_file = "DBSCAN_position_table_results"
+    column_names = ["eps", "min sample", "mean ARI score"]
+
+    # create empty dataframe
+    results = pd.DataFrame(columns=column_names)
+
+    for eps in list_eps:
+        for min_sample in list_min_sample:
+
+            # produce results for DBSCAN algorithm with these values of eps and min_sample
+
+            old_labels = DBscan_step_positions(steps[0], None, directory, eps=eps, min_sample=min_sample)
+
+            for step in steps[1:]:
+                old_labels = DBscan_step_positions(step, old_labels, directory, eps=eps, min_sample=min_sample)
+
+            # produce results
+            filename_true = "ground_truth_label"
+            filename_pred = "DBSCAN_positions_eps=" + str(eps) + "min_sample=" + str(min_sample) + "_label"
+
+            score = calculate_rand_score(steps, directory, filename_true, filename_pred)
+            results = results.append({"eps": eps, "min sample": min_sample, "mean ARI score": score}, ignore_index=True)
+            print(results)
+
+    # stock dataframe into a file
+    results.to_csv(name_pandas_file + ".csv", index=False)
+
+
 def DBscan_step_positions_and_velocity(step, old_labels, repository,
-                                       beta=27):
+                                       alpha=1,
+                                       beta=27,
+                                       eps=85,
+                                       min_sample=2):
     """
     DBSCAN algorithm on positions + beta * velocities
     """
     positions, velocities, headings = \
         get_positions_velocity_headings(repository, step)
 
-    train_data = np.concatenate((positions, beta * velocities), axis=1)
+    train_data = np.concatenate((alpha * positions, beta * velocities), axis=1)
 
-    db = DBSCAN(eps=85, min_samples=2).fit(train_data)
+    db = DBSCAN(eps=eps, min_samples=min_sample).fit(train_data)
     labels = db.labels_ + 1  # for getting rid of -1 labels
     if old_labels is not None:
         labels = merging_labels(old_labels, labels)
     stock_labels(labels, step, repository=repository,
-                 filename="DBSCAN_position|velocity_label")
+                 filename="DBSCAN_position|velocity_eps=" + str(eps) + "min_sample=" + str(min_sample)
+                          + "alpha=" + str(alpha) + "beta=" + str(beta) + "label")
 
     return labels
+
+
+def test_DBSCAN_positions_and_velocity(steps, directory, list_eps, list_min_sample, list_alpha, list_beta):
+    name_pandas_file = "DBSCAN_position_and_velocity_table_results"
+    column_names = ["eps", "min sample", "alpha", "beta", "mean ARI score"]
+
+    # create empty dataframe
+    results = pd.DataFrame(columns=column_names)
+
+    for eps in list_eps:
+        for min_sample in list_min_sample:
+            for beta in list_beta:
+                for alpha in list_alpha:
+
+                    # produce results for DBSCAN algorithm with these values of eps and min_sample
+                    old_labels = DBscan_step_positions_and_velocity(steps[0], None, directory, alpha=alpha,
+                                                                    beta=beta,
+                                                                    min_sample=min_sample,
+                                                                    eps=eps)
+
+                    for step in steps[1:]:
+                        old_labels = DBscan_step_positions_and_velocity(step,
+                                                                        old_labels,
+                                                                        directory,
+                                                                        alpha=alpha,
+                                                                        beta=beta,
+                                                                        min_sample=min_sample,
+                                                                        eps=eps)
+
+                    # produce results
+                    filename_true = "ground_truth_label"
+                    filename_pred = "DBSCAN_position|velocity_eps=" + str(eps) + "min_sample=" + str(min_sample) \
+                                    + "alpha=" + str(alpha) + "beta=" + str(beta) + "label"
+
+                    score = calculate_rand_score(steps, directory, filename_true, filename_pred)
+                    results = results.append({"eps": eps, "min sample": min_sample, "alpha": alpha, "beta": beta,
+                                              "mean ARI score": score}, ignore_index=True)
+                    print(results)
+    # stock dataframe into a file
+    results.to_csv(name_pandas_file + ".csv", index=False)
 
 
 def DBscan_step_intuition_dist_multistep(step, old_labels, repository, min_sample=2,
@@ -289,11 +364,55 @@ def DBscan_step_intuition_dist(step, old_labels, repository,
         labels = merging_labels(old_labels, labels)
     stock_labels(labels, step, repository=repository,
                  filename="DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label")
-
     return labels
 
 
-def build_ground_truth(step, old_labels, repository, list_nb_boids, beta=23):
+def test_DBSCAN_new_metric_positions_and_velocity(steps, directory, list_alpha, list_phi):
+    name_pandas_file = "DBSCAN_new_metric_position_and_velocity_table_results"
+    column_names = ["alpha", "phi", "mean ARI score"]
+
+    # create empty dataframe
+    results = pd.DataFrame(columns=column_names)
+
+    global phi
+    global alpha
+
+    eps = 85
+    min_sample = 2
+    for phi_ in list_phi:
+        for alpha_ in list_alpha:
+
+            phi = phi_
+            alpha = alpha_
+
+            # produce results for DBSCAN algorithm with these values of eps and min_sample
+            old_labels = DBscan_step_intuition_dist(steps[0], None, directory,
+                                                    min_sample=min_sample,
+                                                    eps=eps)
+
+            for step in steps[1:]:
+                old_labels = DBscan_step_intuition_dist(step,
+                                                        old_labels,
+                                                        directory,
+                                                        min_sample=min_sample,
+                                                        eps=eps)
+
+            # produce results
+            filename_true = "ground_truth_label"
+            filename_pred = "DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label"
+
+            score = calculate_rand_score(steps, directory, filename_true, filename_pred)
+            results = results.append({"alpha": alpha, "phi": phi,
+                                      "mean ARI score": score}, ignore_index=True)
+            print(results)
+    # stock dataframe into a file
+    results.to_csv(name_pandas_file + ".csv", index=False)
+
+
+def build_ground_truth(step, old_labels, repository, list_nb_boids,
+                       beta=23,
+                       eps=85,
+                       min_sample=2):
     """
     build ground truth with DBscan on positions
     """
@@ -316,7 +435,7 @@ def build_ground_truth(step, old_labels, repository, list_nb_boids, beta=23):
         """
         train_data = positions[indices]
 
-        db = DBSCAN(eps=85, min_samples=2).fit(train_data)
+        db = DBSCAN(eps=eps, min_samples=min_sample).fit(train_data)
 
         for ind_0, ind in zip(np.arange(0, nb_boids), indices):
             #  we keep the zeros, we apply + 50 to the other labels
@@ -334,13 +453,6 @@ def build_ground_truth(step, old_labels, repository, list_nb_boids, beta=23):
                  filename="ground_truth_label")
 
     return labels
-
-
-def run_clustering_algorithm(steps, directory, function):
-    old_labels = function(steps[0], None, directory)
-
-    for step in steps[1:]:
-        old_labels = function(step, old_labels, directory)
 
 
 def calculate_rand_score(steps, repository, filename_true, filename_pred):
@@ -370,12 +482,38 @@ def calculate_rand_score(steps, repository, filename_true, filename_pred):
 
 
 if __name__ == "__main__":
+    # steps to test the clustering algorithm
     steps = list(np.arange(300, 1000))
+
+    # directory where the results will be stored.
     directory = "simulation_data/"
-    # function = DBscan_step_intuition_dist
 
-    # function = DBscan_step_intuition_dist_multistep
-    # function = DBscan_step_positions_and_velocity
-    function = DBscan_step_positions
+    list_eps = [65, 70, 75, 80, 85, 90]
+    list_min_sample = [2, 3, 4, 5]
 
-    run_clustering_algorithm(steps, directory, function)
+    # run test for DBSCAN using positions
+    test_DBSCAN_positions(directory=directory,
+                          steps=steps,
+                          list_eps=list_eps,
+                          list_min_sample=list_min_sample)
+
+    list_alpha = [0.8, 1, 1.2]
+    list_beta = [10, 15, 20, 25, 30, 35, 40]
+    list_eps = [85]
+    list_min_sample = [2]
+
+    # run test for DBSCAN on positions and velocities
+    test_DBSCAN_positions_and_velocity(directory=directory,
+                                       steps=steps,
+                                       list_alpha=list_alpha,
+                                       list_beta=list_beta,
+                                       list_eps=list_eps,
+                                       list_min_sample=list_min_sample)
+
+    list_phi = [50, 100, 150, 200]
+    list_alpha = [0.8, 1, 1.2]
+
+    test_DBSCAN_new_metric_positions_and_velocity(directory=directory,
+                                                  steps=steps,
+                                                  list_alpha=list_alpha,
+                                                  list_phi=list_phi)

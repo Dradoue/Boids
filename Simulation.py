@@ -2,18 +2,18 @@
 # email: edouard.gouteux@gmail.com
 # -----------------------------------------------------------
 import math
+
 import numpy as np
 
-
 from Boids import Boids
-from Triangles import Triangles
-from constants import BOUNDS
-# imports from local files
-from utils import get_positions_velocity_headings
 from ML import graph_step, DBscan_step_positions, \
     DBscan_step_positions_and_velocity, \
     labels_to_colorlist, build_ground_truth, \
     DBscan_step_intuition_dist, DBscan_step_intuition_dist_multistep
+from Triangles import Triangles
+from constants import BOUNDS
+# imports from local files
+from utils import get_positions_velocity_headings
 
 
 class Simulation:
@@ -142,8 +142,7 @@ class Simulation:
                                             self.step)
 
         list_color = graph_step(self.step,
-                                repository=self.repository,
-                                filename=self.filename)
+                                repository=self.repository)
 
         self.step += 1
 
@@ -154,11 +153,10 @@ class Simulation:
     def animate_labels_the_data(self, time):
         self.boids.positions, self.boids.velocities, self.boids.headings = \
             get_positions_velocity_headings(self.repository,
-                                            self.filename,
                                             self.step)
 
         self.old_labels = build_ground_truth(self.step, self.old_labels, self.repository,
-                                             self.filename, self.list_num_boids)
+                                             self.list_num_boids)
 
         color_list = labels_to_colorlist(self.old_labels)
 
@@ -171,13 +169,11 @@ class Simulation:
     def animate_DBscan_positions(self, time):
         self.boids.positions, self.boids.velocities, self.boids.headings = \
             get_positions_velocity_headings(self.repository,
-                                            self.filename,
                                             self.step)
 
         self.old_labels = DBscan_step_positions(self.step,
                                                 self.old_labels,
-                                                self.repository,
-                                                self.filename)
+                                                self.repository)
 
         color_list = labels_to_colorlist(self.old_labels)
 
@@ -190,12 +186,10 @@ class Simulation:
     def animate_DBscan_positions_and_velocities(self, time):
         self.boids.positions, self.boids.velocities, self.boids.headings = \
             get_positions_velocity_headings(self.repository,
-                                            self.filename,
                                             self.step)
         self.old_labels = DBscan_step_positions_and_velocity(self.step,
                                                              self.old_labels,
-                                                             self.repository,
-                                                             self.filename)
+                                                             self.repository)
 
         color_list = labels_to_colorlist(self.old_labels)
 
@@ -207,13 +201,12 @@ class Simulation:
 
     def animate_DBscan_intuition_metric(self, time):
         self.boids.positions, self.boids.velocities, self.boids.headings = \
-            get_positions_velocity_headings(self.repository, self.filename,
+            get_positions_velocity_headings(self.repository,
                                             self.step)
 
         self.old_labels = DBscan_step_intuition_dist(self.step,
                                                      self.old_labels,
-                                                     self.repository,
-                                                     self.filename)
+                                                     self.repository)
 
         color_list = labels_to_colorlist(self.old_labels)
 
@@ -226,13 +219,13 @@ class Simulation:
     def animate_DBscan_intuition_metric_multistep(self, time, steps=3):
         for i in range(self.step, self.step + steps):
             self.boids.positions, self.boids.velocities, self.boids.headings = \
-                get_positions_velocity_headings(self.repository, self.filename,
+                get_positions_velocity_headings(self.repository,
                                                 self.step)
 
         self.old_labels = DBscan_step_intuition_dist_multistep(self.step,
                                                                self.old_labels,
                                                                self.repository,
-                                                               self.filename, nb_step=steps)
+                                                               nb_step=steps)
 
         color_list = labels_to_colorlist(self.old_labels)
 
