@@ -8,7 +8,8 @@ from constants import WINDOW_SIZE
 from utils import is_empty, erase_files, write_constants_into_simulation_directory
 
 
-def main(mode, repository, list_num_boids, positions_init=None, velocities_init=None, step_to_begin=300):
+def main(mode, repository, list_num_boids, positions_init=None, velocities_init=None, step_to_begin=300,
+         step_to_end=1500):
     """
     main function create a simulation with some parameters specified and play a scenario, depending on mode value,
     we select an Simulation.animate_****** type method
@@ -18,6 +19,8 @@ def main(mode, repository, list_num_boids, positions_init=None, velocities_init=
     :param list_num_boids: list with number of each boids species
     :param positions_init: if None we will use default initialisation (useful only when mode=0)
     :param velocities_init: if None we will use default initialisation (useful only when mode=0)
+    :param step_to_begin:
+    :param step_to_end:
     """
     # initiate the window
     window = pyglet.window.Window(WINDOW_SIZE[0],
@@ -165,19 +168,6 @@ def main(mode, repository, list_num_boids, positions_init=None, velocities_init=
             print("local directory " + "data/" + repository + " does not exist")
             exit()
 
-    elif mode == 8:
-
-        if os.path.exists("data/" + repository):
-            # rerun simulation with specific metric on DBSCAN
-            app = Simulation(list_num_boids=list_num_boids,
-                             repository=repository,
-                             step=step_to_begin)
-
-            func_animate = app.animate_rerun_DBSCAN_intuition_metric
-        else:
-            print("local directory " + "data/" + repository + " does not exist")
-            exit()
-
     @window.event
     def on_draw():
         """
@@ -191,11 +181,23 @@ def main(mode, repository, list_num_boids, positions_init=None, velocities_init=
 
 
 if __name__ == "__main__":
-
     # choose a mode
-    mode = 2  # choose mode from 0 to 8, see behind in *main* function
-    repository = "simulation_data/"  # where the data will be stored in \data\*repository*
-    list_num_boids = [30, 30, 30, 30]  # number of boids for each species
-    step_to_begin = 300  # step where the rerun-simulation begin, useless for mode=0 where we begin
-    # a new simulation and begin at step=0
-    main(mode=mode, repository=repository, list_num_boids=list_num_boids, step_to_begin=step_to_begin)
+    mode = 0  # choose mode from 0 to 7, see behind in *main* function
+    # 0: produce data - specify list_num_boids, repository
+    # 1: rerun data of the simulation - specify list_num_boids, repository, and step to begin
+    # 2: rerun data of the simulation and show clustering of positions with dbscan - specify list_num_boids,
+    # repository, and step to begin
+    # 3: rerun data of the simulation and show clustering of positions and velocities with dbscan
+    # - specify list_num_boids, repository, and step to begin
+    # 4: doesn't work well, use graphs
+    # 5: rerun data of the simulation and build ground truth - specify list_num_boids, repository, and step to begin
+    # 6: rerun data of the simulation and show clustering of positions and velocities with dbscan
+    # and a custom metric - specify list_num_boids, repository, and step to begin
+    # 7: rerun data of the simulation and show clustering of positions and velocities using multiple steps with dbscan
+    # and a custom metric - specify list_num_boids, repository, and step to begin
+
+    repository = "simulation_data_1000_Boids_1/"  # where the data will be stored in \data\*repository*
+    list_num_boids = [1000, 1000, 1000, 1000]  # number of boids for each species
+    step_to_begin = 100  # step where the rerun-simulation begin,
+    step_to_end = 2000
+    main(mode=mode, repository=repository, list_num_boids=list_num_boids, step_to_begin=step_to_begin, step_to_end=2000)

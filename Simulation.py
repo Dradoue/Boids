@@ -5,7 +5,7 @@ import math
 
 import numpy as np
 
-from Boids import Boids
+from Boids import Boids_
 from ML import graph_step, DBscan_step_positions, \
     DBscan_step_positions_and_velocity, \
     labels_to_colorlist, build_ground_truth, \
@@ -29,6 +29,7 @@ class Simulation:
     :param velocities_init: (optional) initial velocities of boids
     :param step: (optional) initial step of the simulation, 1 by default
     """
+
     def __init__(self, **kwargs):
         """
         initialise all parameters
@@ -61,13 +62,13 @@ class Simulation:
                                                                        self.max_speed))
                                                     for _ in range(self.number_boids)]))
 
-        self.boids = Boids(self.list_num_boids,
-                           self.positions_init, self.velocities_init,
-                           self.min_speed,
-                           self.max_speed,
-                           max_turn=self.max_turn)
+        self.boids = Boids_(self.list_num_boids,
+                            self.positions_init, self.velocities_init,
+                            self.min_speed,
+                            self.max_speed,
+                            max_turn=self.max_turn)
 
-        self.triangles = self.triangles = \
+        self.triangles = \
             Triangles(list_num_triangles=self.list_num_boids)
         # Set background to white
 
@@ -76,9 +77,6 @@ class Simulation:
         self.old_labels = None  # a help for clusters labels
 
     def stock_positions_velocities_headings_and_increase_step(self):
-        """
-        In the title
-        """
         np.savetxt("data/" + self.path + "positions_" + str(self.step),
                    self.boids.positions, fmt="%f")
         np.savetxt("data/" + self.path + "velocities_" + str(self.step),
@@ -110,7 +108,6 @@ class Simulation:
         """
         self.boids.positions, self.boids.velocities, self.boids.headings = \
             get_positions_velocity_headings(self.repository,
-                                            self.filename,
                                             self.step)
         self.step += 1
         self.triangles.update_triangles(self.boids.headings,
@@ -122,7 +119,6 @@ class Simulation:
         """
         self.boids.positions, self.boids.velocities, self.boids.headings = \
             get_positions_velocity_headings(self.repository,
-                                            self.filename,
                                             self.step)
 
         labels = np.loadtxt("data/" + self.path + "DBSCAN_intuition_dist_phi="
@@ -138,7 +134,6 @@ class Simulation:
     def animate_label_prop(self, time):
         self.boids.positions, self.boids.velocities, self.boids.headings = \
             get_positions_velocity_headings(self.repository,
-                                            self.filename,
                                             self.step)
 
         list_color = graph_step(self.step,
@@ -234,4 +229,3 @@ class Simulation:
                                         self.boids.positions)
 
         self.step += 1
-

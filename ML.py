@@ -1,9 +1,11 @@
 import collections
+import time
 
 import karateclub
 import networkx as nx
 import numpy as np
 import pandas as pd
+from scipy.spatial.distance import pdist, squareform
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import adjusted_rand_score
 
@@ -15,6 +17,10 @@ global phi
 global alpha
 phi = 300
 alpha = 1.2
+
+
+def nb_clusters(labels):
+    return np.unique(labels).shape[0] - 1
 
 
 def build_graph(positions, velocities, headings):
@@ -33,7 +39,7 @@ def transform_data_for_graph(positions, velocities, headings):
                 velocities.tolist(), headings.tolist())]
 
 
-def calculate_edges_1(positions, velocities, headings):
+def calculate_edges_1(positions, velocities, headings, epsilon=150):
     """
     simple method for calculating edges with positions,
     velocities and headings to be used later
@@ -43,7 +49,7 @@ def calculate_edges_1(positions, velocities, headings):
         for j in list(range(positions.shape[0])):
             if i != j:
                 if toroid_dist_between_points(positions[i, :],
-                                              positions[j, :]) < 150:
+                                              positions[j, :]) < epsilon:
                     list_edges.append((i, j))
 
     return list_edges
@@ -135,7 +141,7 @@ def graph_step(step, repository="simulation_data/"):
 
 ############################utils
 
-def merging_labels(old_labels, new_labels):
+def merge_labels(old_labels, new_labels):
     n_old_labels = np.unique(old_labels).shape[0]
 
     for i in range(n_old_labels):
@@ -175,31 +181,7 @@ def labels_to_colorlist(labels):
         color_list.append(TRIANGLES_COLORS[labels[i]])
     return color_list
 
-
 ################################# DBSCAN
-def d1(a1, a2):
-    res = np.linalg.norm(a1[:2] - a2[:2])
-    return res
-
-
-def d2(a1, a2):
-    similarity = np.dot(a1[2:], a2[2:]) / (np.linalg.norm(a1[2:]) * np.linalg.norm(a2[2:]))
-    angular_dist = np.abs(similarity - 1)
-    return angular_dist
-
-
-def linear_comb_dist12(a1, a2):
-    global phi, alpha
-    return alpha * d1(a1, a2) + phi * d2(a1, a2)
-
-
-def linear_comb_dist12_multiplestep(a1, a2, nb_step=3, gamma=0.5):
-    # a1 and a2 are matrices with multiple timesteps data
-    res = 0
-    for i in range(0, nb_step):
-        res = res + gamma ** (nb_step - i) * linear_comb_dist12(a1[i:i + 2], a2[i:i + 2])
-    return res
-
 
 def DBscan_step_positions(step, old_labels, repository, eps=85, min_sample=2):
     """
@@ -209,10 +191,13 @@ def DBscan_step_positions(step, old_labels, repository, eps=85, min_sample=2):
         get_positions_velocity_headings(repository, step)
     # train_data = np.concatenate((positions, velocities), axis=1)
     train_data = positions
+    start = time.time()
     db = DBSCAN(eps=eps, min_samples=min_sample).fit(train_data)
     labels = db.labels_ + 1  # for getting rid of -1 labels
+    end = time.time()
+    print("clustering done in: {0} seconds".format(end - start))
     if old_labels is not None:
-        labels = merging_labels(old_labels, labels)
+        labels = merge_labels(old_labels, labels)
     stock_labels(labels, step, repository=repository,
                  filename="DBSCAN_positions_eps=" + str(eps) + "min_sample=" + str(min_sample) + "_label")
 
@@ -261,10 +246,13 @@ def DBscan_step_positions_and_velocity(step, old_labels, repository,
 
     train_data = np.concatenate((alpha * positions, beta * velocities), axis=1)
 
+    start = time.time()
     db = DBSCAN(eps=eps, min_samples=min_sample).fit(train_data)
+    end = time.time()
+    print("clustering done in: {0} seconds".format(end - start))
     labels = db.labels_ + 1  # for getting rid of -1 labels
     if old_labels is not None:
-        labels = merging_labels(old_labels, labels)
+        labels = merge_labels(old_labels, labels)
     stock_labels(labels, step, repository=repository,
                  filename="DBSCAN_position|velocity_eps=" + str(eps) + "min_sample=" + str(min_sample)
                           + "alpha=" + str(alpha) + "beta=" + str(beta) + "label")
@@ -312,13 +300,56 @@ def test_DBSCAN_positions_and_velocity(steps, directory, list_eps, list_min_samp
     results.to_csv(name_pandas_file + ".csv", index=False)
 
 
+def linear_comb_dist12(a1, a2):
+    global phi, alpha
+    return alpha * d1(a1, a2) + phi * d2(a1, a2)
+
+
+def linear_comb_dist12_multiplestep(a1, a2, nb_step=3, gamma=0.5):
+    # a1 and a2 are matrices with multiple timesteps data
+    res = 0
+    for i in range(0, nb_step):
+        res = res + gamma ** (nb_step - i) * linear_comb_dist12(a1[i:i + 2], a2[i:i + 2])
+    return res
+
+
+def d1(a1, a2):
+    res = np.linalg.norm(a1[:2] - a2[:2])
+    return res
+
+
+def d2(a1, a2):
+    similarity = np.dot(a1[2:], a2[2:]) / (np.linalg.norm(a1[2:]) * np.linalg.norm(a2[2:]))
+    angular_dist = np.abs(similarity - 1)
+    return angular_dist
+
+
+def d1(a1, a2):
+    res = np.linalg.norm(a1[:2] - a2[:2])
+    return res
+
+
+def linear_comb_dist12_multistep_precomputed(X, nb_step=3, gamma=0.5):
+    global phi, alpha
+
+    list_linear_dist = np.array([alpha * pdist(X[:, i:i + 2], metric=d1)
+                                 + phi * pdist(X[:, i + 2:i + 4], metric=d1) for i in
+                                 range(0, (nb_step - 1) * 4 + 1, 4)])
+
+    list_linear_dist_with_gamma = np.array([gamma ** (nb_step - i) * list_linear_dist[i] for i in range(0, nb_step)])
+
+    final_result = np.sum(list_linear_dist_with_gamma, axis=0)
+
+    return squareform(final_result)
+
+
 def DBscan_step_intuition_dist_multistep(step, old_labels, repository, min_sample=2,
-                                         eps=85, nb_step=3):
+                                         eps=85, nb_step=3, gamma=0.5):
     """
     DBSCAN algorithm on positions + beta * velocities
     """
     global phi, alpha
-
+    precomputed_ = True
     train_data = None
 
     for i in range(step, step + nb_step, 1):
@@ -329,19 +360,30 @@ def DBscan_step_intuition_dist_multistep(step, old_labels, repository, min_sampl
         if train_data is not None:
 
             train_data = np.concatenate((train_data, np.concatenate((positions, velocities), axis=1)),
-                                        axis=0)
+                                        axis=1)
         else:
 
             train_data = np.concatenate((positions, velocities), axis=1)
 
-    db = DBSCAN(eps=eps, min_samples=min_sample, metric=linear_comb_dist12_multiplestep).fit(train_data)
+    start = time.time()
 
+    if precomputed_:
+
+        train_data = linear_comb_dist12_multistep_precomputed(train_data)
+        db = DBSCAN(eps=eps, min_samples=min_sample, metric='precomputed').fit(train_data)
+
+    else:
+        db = DBSCAN(eps=eps, min_samples=min_sample, metric=linear_comb_dist12_multiplestep).fit(train_data)
+
+    end = time.time()
+    print("clustering done in: {0} seconds".format(end - start))
     labels = db.labels_ + 1  # for getting rid of -1 labels
 
     if old_labels is not None:
-        labels = merging_labels(old_labels, labels)
+        labels = merge_labels(old_labels, labels)
     stock_labels(labels, step, repository=repository,
-                 filename="DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label")
+                 filename="DBSCAN_intuition_distmultisteps_phi=" + str(phi) + "_alpha="
+                          + str(alpha) + "gamma=" + str(gamma) + "_label")
 
     return labels
 
@@ -352,16 +394,21 @@ def DBscan_step_intuition_dist(step, old_labels, repository,
     DBcsan algorithm on positions + beta * velocities
     """
     global phi, alpha
+
     positions, velocities, headings = \
         get_positions_velocity_headings(repository, step)
 
     train_data = np.concatenate((positions, velocities), axis=1)
+    start = time.time()
 
     db = DBSCAN(eps=eps, min_samples=min_sample, metric=linear_comb_dist12).fit(train_data)
 
+    end = time.time()
+    print("clustering done in: {0} seconds".format(end - start))
+
     labels = db.labels_ + 1  # for getting rid of -1 labels
     if old_labels is not None:
-        labels = merging_labels(old_labels, labels)
+        labels = merge_labels(old_labels, labels)
     stock_labels(labels, step, repository=repository,
                  filename="DBSCAN_intuition_dist_phi=" + str(phi) + "_alpha=" + str(alpha) + "_label")
     return labels
@@ -411,7 +458,7 @@ def test_DBSCAN_new_metric_positions_and_velocity(steps, directory, list_alpha, 
 
 def build_ground_truth(step, old_labels, repository, list_nb_boids,
                        beta=23,
-                       eps=85,
+                       eps=75,
                        min_sample=2):
     """
     build ground truth with DBscan on positions
@@ -446,8 +493,8 @@ def build_ground_truth(step, old_labels, repository, list_nb_boids,
             # from different species
 
         if old_labels is not None:
-            labels[indices] = merging_labels(old_labels[indices],
-                                             labels[indices])
+            labels[indices] = merge_labels(old_labels[indices],
+                                           labels[indices])
 
     stock_labels(labels, step, repository=repository,
                  filename="ground_truth_label")
@@ -486,8 +533,8 @@ if __name__ == "__main__":
     steps = list(np.arange(300, 1000))
 
     # directory where the results will be stored.
-    directory = "simulation_data/"
-
+    directory = "simulation_data_200_Boids/"
+    """
     list_eps = [65, 70, 75, 80, 85, 90]
     list_min_sample = [2, 3, 4, 5]
 
@@ -509,7 +556,7 @@ if __name__ == "__main__":
                                        list_beta=list_beta,
                                        list_eps=list_eps,
                                        list_min_sample=list_min_sample)
-
+    """
     list_phi = [50, 100, 150, 200]
     list_alpha = [0.8, 1, 1.2]
 
