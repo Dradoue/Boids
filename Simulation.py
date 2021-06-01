@@ -34,6 +34,7 @@ class Simulation:
         """
         initialise all parameters
         """
+        self.run = True
         self.list_num_boids = kwargs.get('list_num_boids',
                                          [150, 150])
 
@@ -45,6 +46,9 @@ class Simulation:
         self.filename = kwargs.get('file_name', "")
         self.repository = kwargs.get('repository',
                                      "simulation_data/")
+        self.step_init = kwargs.get('step_init', 0)
+        self.current_step = self.step_init
+        self.step_end = kwargs.get('step_end', 1500)
 
         self.path = self.repository + self.filename
 
@@ -88,13 +92,13 @@ class Simulation:
     #################################################################
     # some animation functions for different scenarios
     #################################################################
-
     def animate(self, time):
         """
         Standard animate step: we update boids,
         stock standard data (positions, velocity, headings) in self.repository,
         with prefix self.filename on the files, we increment steps value, and update the screen
         """
+
         self.boids.update_boids()
         self.stock_positions_velocities_headings_and_increase_step()
         self.triangles.update_triangles(self.boids.headings,
@@ -106,6 +110,7 @@ class Simulation:
         with prefix self.filename and replay it,
         we update the step and the triangles
         """
+
         self.boids.positions, self.boids.velocities, self.boids.headings = \
             get_positions_velocity_headings(self.repository,
                                             self.step)

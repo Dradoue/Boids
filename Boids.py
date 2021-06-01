@@ -1,5 +1,6 @@
 import time
 
+# import cupy as cp
 import numpy as np
 
 from Physics2D import Physics2D
@@ -85,7 +86,6 @@ class Boids(Physics2D):
                     self.apply_separation(list_ind, n_species)
 
                     n_species += 1
-
                     # apply chasing and fleeing relations
                     for k in range(RELATIONS_SPECIES.shape[0]):
                         for l in range(RELATIONS_SPECIES.shape[0]):
@@ -543,8 +543,9 @@ class Boids_(Physics2D):
         indices_.remove(ind)
         indices_ = np.array(indices_)
 
-        dist = np.linalg.norm(self.positions[indices_, :]
-                              - self.positions[ind, :], axis=1)
+        diff_ind = np.array(self.positions[indices_, :] - self.positions[ind, :])
+
+        dist = np.linalg.norm(diff_ind, axis=1)
 
         # neighbors indices relatively to indices_
         neighbors = np.where(dist < BOID_VIEW[n_specie])[0]

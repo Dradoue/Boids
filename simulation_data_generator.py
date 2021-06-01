@@ -35,7 +35,7 @@ def main(mode, repository, list_num_boids, positions_init=None, velocities_init=
 
     # play the scenario depending on :mode: value
     if mode == 0:
-
+        step_to_begin = 0
         # if we passed specific init velocities/positions
         if positions_init is None:
 
@@ -164,6 +164,7 @@ def main(mode, repository, list_num_boids, positions_init=None, velocities_init=
                              step=step_to_begin)
 
             func_animate = app.animate_DBscan_intuition_metric_multistep
+
         else:
             print("local directory " + "data/" + repository + " does not exist")
             exit()
@@ -181,8 +182,9 @@ def main(mode, repository, list_num_boids, positions_init=None, velocities_init=
 
 
 if __name__ == "__main__":
+
     # choose a mode
-    mode = 0  # choose mode from 0 to 7, see behind in *main* function
+    mode = 5  # choose mode from 0 to 7, see behind in *main* function
     # 0: produce data - specify list_num_boids, repository
     # 1: rerun data of the simulation - specify list_num_boids, repository, and step to begin
     # 2: rerun data of the simulation and show clustering of positions with dbscan - specify list_num_boids,
@@ -196,8 +198,7 @@ if __name__ == "__main__":
     # 7: rerun data of the simulation and show clustering of positions and velocities using multiple steps with dbscan
     # and a custom metric - specify list_num_boids, repository, and step to begin
 
-    repository = "simulation_data_1000_Boids_1/"  # where the data will be stored in \data\*repository*
-    list_num_boids = [1000, 1000, 1000, 1000]  # number of boids for each species
+    repository = "simulation_data_500_Boids_2/"  # where the data will be stored in \data\*repository*
+    list_num_boids = [500] * 4  # number of boids for each species
     step_to_begin = 100  # step where the rerun-simulation begin,
-    step_to_end = 2000
     main(mode=mode, repository=repository, list_num_boids=list_num_boids, step_to_begin=step_to_begin, step_to_end=2000)
