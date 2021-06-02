@@ -29,7 +29,7 @@ BOID_VIEW = [200, 200, 200, 200]  # euclidean distance where boids can see other
 BOID_VIEW_ANGLE = [260, 260, 260, 260]  # view angle of boids
 FLEE_FORCE = [40, 40, 40, 40]
 CHASING_FORCE = [40, 40, 40, 40]
-SEPARATION_FORCE = [2.5, 2.5, 2.5, 2.5]
+SEPARATION_FORCE = [15, 15, 15, 15]
 COHESION_FORCE = [20, 20, 20, 20]
 ALIGNMENT_FORCE = [35, 35, 35, 35]
 
