@@ -605,7 +605,8 @@ class Boids_(Physics2D):
 
                     if neighbors_that_respect_angle.shape[0] > 0:
                         vector_separation = dist[neighbors_that_respect_angle, :]
-                        # norm_vector_separation = np.abs(vector_separation)
+                        norm_vector_separation = np.abs(vector_separation)
+                        vector_separation = np.divide(vector_separation, norm_vector_separation)
 
                         sep = np.sum(vector_separation, axis=0)
 
