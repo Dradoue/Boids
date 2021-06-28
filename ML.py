@@ -15,8 +15,10 @@ from utils import toroid_dist_between_points, \
 
 global phi
 global alpha
+global gamma
 phi = 300
-alpha = 1.2
+alpha = 1
+gamma = 0.998
 
 
 def nb_clusters(labels):
@@ -181,6 +183,7 @@ def labels_to_colorlist(labels):
         color_list.append(TRIANGLES_COLORS[labels[i]])
     return color_list
 
+
 ################################# DBSCAN
 
 def DBscan_step_positions(step, old_labels, repository, eps=85, min_sample=2):
@@ -324,11 +327,6 @@ def d2(a1, a2):
     return angular_dist
 
 
-def d1(a1, a2):
-    res = np.linalg.norm(a1[:2] - a2[:2])
-    return res
-
-
 def linear_comb_dist12_multistep_precomputed(X, nb_step=3, gamma=0.5):
     global phi, alpha
 
@@ -341,6 +339,98 @@ def linear_comb_dist12_multistep_precomputed(X, nb_step=3, gamma=0.5):
     final_result = np.sum(list_linear_dist_with_gamma, axis=0)
 
     return squareform(final_result)
+
+
+def DBscan_step_intuition_dist_multistep_1(step, old_labels, repository, min_sample=2,
+                                           eps=85, nb_step=5, phi_=300, alpha_=1, gamma_=0.998):
+    """
+    DBSCAN algorithm using euclidian metric on data = alpha * positions[i] + phi * velocities[i] for i = t-n, ..., t
+    """
+    global phi, alpha, gamma
+
+    phi = phi_
+    alpha = alpha_
+    gamma = gamma_
+
+    positions, velocities, headings = \
+        get_positions_velocity_headings(repository, step - nb_step)
+
+    train_data = np.concatenate((alpha * positions, phi * velocities), axis=1)
+
+    for k, i in zip(range(1, nb_step - 1, 1), range(step - nb_step + 1, step, 1)):
+        positions, velocities, headings = \
+            get_positions_velocity_headings(repository, i)
+
+        train_data = np.concatenate(
+            (train_data, gamma ** k * np.concatenate((alpha * positions, phi * velocities), axis=1)),
+            axis=1)
+
+    start = time.time()
+
+    db = DBSCAN(eps=eps, min_samples=min_sample).fit(train_data)
+
+    end = time.time()
+    print("clustering done in: {0} seconds".format(end - start))
+    labels = db.labels_ + 1  # for getting rid of -1 labels
+
+    if old_labels is not None:
+        labels = merge_labels(old_labels, labels)
+    stock_labels(labels, step, repository=repository,
+                 filename="DBSCAN_intuition_distmultisteps_phi=" + str(phi) + "_alpha="
+                          + str(alpha) + "gamma=" + str(gamma)
+                          + "nb_step=" + str(nb_step) + "_label")
+
+    return labels
+
+
+def test_DBSCAN_positions_and_velocity_multistep_1(steps, directory, list_alpha, list_phi, list_gamma, list_nb_steps):
+    name_pandas_file = "test_DBSCAN_positions_and_velocity_multistep_1_table_results"
+    column_names = ["alpha", "phi", "gamma", "num steps", "mean ARI score"]
+
+    # create empty dataframe
+    results = pd.DataFrame(columns=column_names)
+
+    global phi
+    global alpha
+    global gamma
+
+    eps = 85
+    min_sample = 2
+    for phi_ in list_phi:
+        for alpha_ in list_alpha:
+            for gamma_ in list_gamma:
+                for nb_steps in list_nb_steps:
+                    phi = phi_
+                    alpha = alpha_
+                    gamma = gamma_
+
+                    # produce results for DBSCAN algorithm with these values of eps and min_sample
+                    old_labels = DBscan_step_intuition_dist_multistep_1(steps[0],
+                                                                        None,
+                                                                        directory,
+                                                                        min_sample=min_sample,
+                                                                        eps=eps,
+                                                                        nb_step=nb_steps)
+                    for step in steps[1:]:
+                        old_labels = DBscan_step_intuition_dist_multistep_1(step,
+                                                                            old_labels,
+                                                                            directory,
+                                                                            min_sample=min_sample,
+                                                                            eps=eps,
+                                                                            nb_step=nb_steps)
+
+                    # produce results
+                    filename_true = "ground_truth_label"
+                    filename_pred = "DBSCAN_intuition_distmultisteps_phi=" + str(phi) + "_alpha=" \
+                                    + str(alpha) + "gamma=" + str(gamma) \
+                                    + "nb_step=" + str(nb_steps) + "_label"
+
+                    score = calculate_rand_score(steps, directory, filename_true, filename_pred)
+                    results = results.append({"alpha": alpha, "phi": phi, "gamma": gamma, "num steps": nb_steps,
+                                              "mean ARI score": score}, ignore_index=True)
+            print(results)
+    # stock dataframe into a file
+    results.to_csv(name_pandas_file + ".csv", index=False)
 
 
 def DBscan_step_intuition_dist_multistep(step, old_labels, repository, min_sample=2,
@@ -389,11 +479,14 @@ def DBscan_step_intuition_dist_multistep(step, old_labels, repository, min_sampl
 
 
 def DBscan_step_intuition_dist(step, old_labels, repository,
-                               min_sample=2, eps=85):
+                               min_sample=2, eps=85, phi_=10, alpha_=1):
     """
     DBcsan algorithm on positions + beta * velocities
     """
     global phi, alpha
+
+    phi = phi_
+    alpha = alpha_
 
     positions, velocities, headings = \
         get_positions_velocity_headings(repository, step)
@@ -451,8 +544,10 @@ def test_DBSCAN_new_metric_positions_and_velocity(steps, directory, list_alpha, 
             score = calculate_rand_score(steps, directory, filename_true, filename_pred)
             results = results.append({"alpha": alpha, "phi": phi,
                                       "mean ARI score": score}, ignore_index=True)
-            print(results)
+
     # stock dataframe into a file
+    res = results.sort_values(["mean ARI score"], ascending=False)
+    print(res.head(10))
     results.to_csv(name_pandas_file + ".csv", index=False)
 
 
@@ -528,9 +623,42 @@ def calculate_rand_score(steps, repository, filename_true, filename_pred):
     return np.mean(scores)
 
 
+def calculate_stability(old_labels, new_labels):
+    """
+    compare new labels and old labels applying the formula (100 - %change of population in clusters)/100
+    """
+    result = None
+    # get information about each clusters of old labels
+    old_labels_, old_labels_indices = np.unique(old_labels)
+    new_labels_, new_labels_indices = np.unique(new_labels)
+    return result
+
+
+from convex import graham_scan
+
+
+def calculate_convex_envelope(positions, labels_clusters):
+    """
+    return a list of convex envelope which is a dictionary of indices
+    """
+    dic = dict()
+    for i in np.unique(labels_clusters):
+        if i == 0:
+            pass
+        else:
+            dic[i] = []
+            indices_i = np.where(labels_clusters == i)[0]
+            pos = positions[indices_i, :]
+            hull = graham_scan(pos, False)
+            dic[i].append(hull)
+            print(hull)
+
+    return dic
+
+
 if __name__ == "__main__":
     # steps to test the clustering algorithm
-    steps = list(np.arange(300, 1000))
+    steps = list(np.arange(1000, 1100))
 
     # directory where the results will be stored.
     directory = "simulation_data_200_Boids/"
@@ -556,7 +684,7 @@ if __name__ == "__main__":
                                        list_beta=list_beta,
                                        list_eps=list_eps,
                                        list_min_sample=list_min_sample)
-    """
+    
     list_phi = [50, 100, 150, 200]
     list_alpha = [0.8, 1, 1.2]
 
@@ -564,3 +692,10 @@ if __name__ == "__main__":
                                                   steps=steps,
                                                   list_alpha=list_alpha,
                                                   list_phi=list_phi)
+    """
+    list_alpha = [0.4, 0.6, 0.8, 1, 1.2, 1.4]
+    list_phi = [10, 25, 40]
+    list_gamma = [0.5, 0.8, 0.9, 0.95]
+    list_nb_steps = [3, 4, 5]
+    test_DBSCAN_positions_and_velocity_multistep_1(steps, directory, list_alpha, list_phi, list_gamma, list_nb_steps)
+
